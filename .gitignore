@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Derived / large artifacts (regenerable)
+derisk/cache/*
+!derisk/cache/.gitkeep
+!derisk/cache/bids.json          # deterministic economics — keep for cross-machine reproducibility
+derisk/results/*
+!derisk/results/.gitkeep
+
+# Conversation data: WildChat-1M / LMSYS-Chat-1M are research-license / HF-gated.
+# Do NOT commit raw conversations. Regenerate with subsample.py on each machine.
+derisk/data/*
+!derisk/data/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

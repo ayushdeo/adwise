@@ -1,0 +1,11 @@
+# De-risk harness dependencies (Python 3.10+)
+openai>=1.0        # OpenAI-compatible client (works with Ollama / llama.cpp / vLLM / hosted)
+pandas>=2.0
+pyarrow>=14.0      # parquet backend for pandas
+tqdm>=4.66         # progress bar (optional but recommended)
+# embeddings (used by embed.py, not label.py):
+sentence-transformers>=3.0
+# controller (used by policies.py / controller.py):
+scikit-learn>=1.3
+numpy>=1.24
+matplotlib>=3.7
