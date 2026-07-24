@@ -34,14 +34,28 @@ python src/label.py --input data/subset.jsonl \
 ```
 Smoke-test first with `--make-sample data/sample.jsonl` then `--input data/sample.jsonl --limit 2`.
 
-## 3. Evaluate + plot + verdict (seconds, CPU)
+## 3. Embed + train the controller (CPU/GPU, minutes)
 ```bash
-python src/evaluate.py                # -> results/pareto.csv (uses cache/features.parquet)
+python src/embed.py --input data/subset.jsonl     # -> cache/embeddings.parquet (bge-small)
+python src/controller.py --use both               # -> cache/controller_scores.parquet (+ model)
+# no embeddings? use judge features only:  python src/controller.py --use judge
+```
+
+## 4. Evaluate + plot + verdict (seconds, CPU)
+```bash
+python src/evaluate.py                # -> results/pareto.csv (auto-adds P6 if scores exist)
 python src/plot.py                    # -> results/pareto.png + results/go_no_go.md
 ```
 Open `results/go_no_go.md` — it auto-scores the pre-registered GO criteria.
 
-## 4. C3 robustness (calibration subset, ~$5–10, optional but recommended)
+## Or do steps 2–4 in one command
+```bash
+python src/run_all.py --input data/subset.jsonl          # label -> embed -> controller -> evaluate -> plot
+python src/run_all.py --input data/subset.jsonl --use judge   # skip embeddings (faster)
+python src/run_all.py --skip label,embed,controller      # re-run analysis on existing features
+```
+
+## 5. C3 robustness (calibration subset, ~$5–10, optional but recommended)
 ```bash
 # re-label a 150-200 convo subset with a stronger hosted judge:
 python src/subsample.py --source file --input data/subset.jsonl --n 200 --out data/calib.jsonl
@@ -56,8 +70,9 @@ python src/plot.py --pareto results/pareto_calib.csv \
 
 ## Verify the harness anytime (no GPU, no data)
 ```bash
-python src/policies.py --synthetic     # sanity table
-python src/evaluate.py --synthetic && python src/plot.py   # full synthetic dry-run
+python src/run_all.py --synthetic      # analysis-only smoke test -> results/go_no_go.md
+python src/policies.py --synthetic     # quick sanity table
+python src/controller.py --synthetic   # controller training self-test
 ```
 
 ## Troubleshooting

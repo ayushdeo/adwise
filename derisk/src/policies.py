@@ -40,7 +40,8 @@ class Slot:
     receptivity: float
     trust_hit: float
     best_rev: float
-    max_fit: int           # max genre_fit over genres (for static-coherence)
+    max_fit: int                       # max genre_fit over genres (for static-coherence)
+    score: Optional[float] = None      # learned controller score (set by controller.py)
 
 @dataclass
 class Conversation:
@@ -71,6 +72,10 @@ def p_receptivity_gated(tau: float) -> Policy:
 def p_value_greedy(lam: float) -> Policy:
     # insert when the revenue outweighs the (lambda-scaled) trust cost
     return lambda s, b, rng: (s.best_rev - lam * s.trust_hit) > 0.0
+
+def p_learned(threshold: float) -> Policy:
+    # insert when the trained controller's score clears the threshold (OURS v2, trained)
+    return lambda s, b, rng: (s.score is not None) and (s.score >= threshold)
 
 # ------------------------------------------------------------------ simulation
 
@@ -122,6 +127,32 @@ def oracle_conv(conv: Conversation, budget: float) -> Tuple[float, float]:
                 dp[c] = cand
     return max(dp), 0.0  # cost not tracked in DP branch
 
+def oracle_select(conv: Conversation, budget: float) -> Tuple[set, float, float]:
+    """Like oracle_conv but returns the CHOSEN slot indices (for behavior cloning).
+    Exact brute force for small slot counts; greedy value-density fallback otherwise."""
+    slots = conv.slots
+    n = len(slots)
+    if n == 0:
+        return set(), 0.0, 0.0
+    if n <= 18:
+        best_rev, best_combo, best_cost = 0.0, (), 0.0
+        for k in range(n + 1):
+            for combo in combinations(range(n), k):
+                cost = sum(slots[i].trust_hit for i in combo)
+                if cost <= budget + 1e-9:
+                    rev = sum(slots[i].best_rev for i in combo)
+                    if rev > best_rev:
+                        best_rev, best_combo, best_cost = rev, combo, cost
+        return set(best_combo), best_rev, best_cost
+    # greedy by value density (approx) for large n
+    order = sorted(range(n), key=lambda i: slots[i].best_rev / max(slots[i].trust_hit, 1e-6),
+                   reverse=True)
+    chosen, spent, rev = set(), 0.0, 0.0
+    for i in order:
+        if spent + slots[i].trust_hit <= budget + 1e-9:
+            chosen.add(i); spent += slots[i].trust_hit; rev += slots[i].best_rev
+    return chosen, rev, spent
+
 def evaluate(convs: List[Conversation], policy: Policy, budget: float,
              seed: int = 0) -> Dict[str, float]:
     rng = random.Random(seed)
@@ -145,10 +176,18 @@ def evaluate_oracle(convs: List[Conversation], budget: float) -> Dict[str, float
 
 # ------------------------------------------------------------------ loading
 
-def load_features(path: Path) -> List[Conversation]:
+def load_features(path: Path, scores_path: Optional[Path] = None) -> List[Conversation]:
     import pandas as pd
     df = pd.read_parquet(path)
     fit_cols = [c for c in df.columns if c.startswith("fit_")]
+
+    # optional learned-controller scores, keyed by (conv_id, slot_idx)
+    score_map: Dict[Tuple[str, int], float] = {}
+    if scores_path is not None and Path(scores_path).exists():
+        sdf = pd.read_parquet(scores_path)
+        for _, r in sdf.iterrows():
+            score_map[(str(r["conv_id"]), int(r["slot_idx"]))] = float(r["score"])
+
     convs: List[Conversation] = []
     for cid, g in df.sort_values(["conv_id", "slot_idx"]).groupby("conv_id"):
         slots = []
@@ -159,6 +198,7 @@ def load_features(path: Path) -> List[Conversation]:
                 trust_hit=float(row["trust_hit"]),
                 best_rev=float(row["best_rev"]),
                 max_fit=max_fit,
+                score=score_map.get((str(cid), int(row["slot_idx"]))),
             ))
         convs.append(Conversation(conv_id=str(cid), slots=slots))
     return convs

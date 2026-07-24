@@ -68,6 +68,11 @@ def sweep_points(convs, budget: float, seeds: int = 5) -> List[Dict]:
     for lam in [0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 12.0, 20.0, 50.0]:
         add("P5_value", lam, P.p_value_greedy(lam))
 
+    # P6 learned controller: threshold sweep (only if scores were merged into slots)
+    if any(s.score is not None for c in convs for s in c.slots):
+        for thr in linspace(0.0, 1.0, 21):
+            add("P6_learned", thr, P.p_learned(thr))
+
     return rows
 
 def oracle_frontier(convs, b_grid: List[float]) -> List[Dict]:
@@ -85,6 +90,8 @@ def oracle_frontier(convs, b_grid: List[float]) -> List[Dict]:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Policy knob sweep -> results/pareto.csv")
     ap.add_argument("--features", type=str, default="cache/features.parquet")
+    ap.add_argument("--scores", type=str, default="cache/controller_scores.parquet",
+                    help="learned-controller scores; if present, adds the P6_learned curve")
     ap.add_argument("--out", type=str, default="results/pareto.csv")
     ap.add_argument("--budget", type=float, default=999.0,
                     help="trust budget; large => knob traces full frontier")
@@ -99,8 +106,9 @@ def main() -> None:
         convs = P.make_synthetic()
         source = "synthetic"
     else:
-        convs = P.load_features(path)
-        source = str(path)
+        scores = Path(args.scores)
+        convs = P.load_features(path, scores if scores.exists() else None)
+        source = str(path) + (f" + {scores}" if scores.exists() else "")
     print(f"Evaluating {len(convs)} conversations from {source}, budget={args.budget}")
 
     rows = sweep_points(convs, args.budget, seeds=args.seeds)

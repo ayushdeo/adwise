@@ -30,7 +30,7 @@ import matplotlib
 matplotlib.use("Agg")  # headless-safe (works over the VS Code extension / no display)
 import matplotlib.pyplot as plt
 
-OURS = {"P4_receptivity", "P5_value"}
+OURS = {"P4_receptivity", "P5_value", "P6_learned"}
 BASELINES = {"P2_random", "P3_static"}
 
 # ------------------------------------------------------------------ io
@@ -81,6 +81,7 @@ STYLE = {
     "P3_static": ("#8c564b", "D", "P3 static-coherence"),
     "P4_receptivity": ("#1f77b4", "o", "P4 receptivity-gated (ours)"),
     "P5_value": ("#2ca02c", "P", "P5 value-greedy (ours)"),
+    "P6_learned": ("#9467bd", "*", "P6 learned controller (ours)"),
     "ORACLE": ("#000000", None, "Oracle (upper bound)"),
 }
 
