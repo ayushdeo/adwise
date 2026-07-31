@@ -79,11 +79,19 @@ Classify the USER's current state into exactly one label:
 - sensitive: emotional, medical, financial-distress, or high-stakes personal topic.
 Answer with ONLY the label (one word)."""
 
-J2_RECEPTIVITY = """Given the conversation context below, how receptive would this user be RIGHT NOW to a
-relevant, clearly-labeled sponsored product suggestion - without feeling interrupted or manipulated?
+# v2 (2026-07-22): anchored rubric to force discrimination. The v1 free-scale 0..1
+# prompt made the 7B judge cluster ~0.85 for almost everything (see docs/derisk-review-01.md F1).
+J2_RECEPTIVITY = """Rate how receptive this user is RIGHT NOW to ONE clearly-labeled sponsored product
+suggestion. Use this rubric and pick the single closest level:
+0.0 = hostile moment (venting, in distress, mid-error/failure) — an ad would feel offensive
+0.2 = deep in a focused task (coding, debugging, writing) — an ad would interrupt
+0.4 = neutral/informational chat — an ad would be tolerated but unwelcome
+0.6 = mild commercial or exploratory intent — a relevant ad could fit
+0.8 = clear purchase/planning intent (shopping, trip, comparing options) — a relevant ad would help
+1.0 = explicitly asking for product or where-to-buy recommendations
 Context:
 <<<{context}>>>
-Answer a single number from 0.0 (would resent it) to 1.0 (would welcome it). Output ONLY the number."""
+Output ONLY the number (one of 0.0, 0.2, 0.4, 0.6, 0.8, 1.0)."""
 
 J3_GENRE_FIT = """Context:
 <<<{context}>>>
@@ -93,12 +101,18 @@ Genres: {genres}
 Return ONLY a JSON object mapping each genre to its integer rating, e.g.
 {{{example}}}"""
 
-J4_TRUST_HIT = """Suppose the assistant inserts ONE clearly-labeled sponsored suggestion at this point.
+# v2 (2026-07-22): anchored rubric (see J2 note).
+J4_TRUST_HIT = """Suppose the assistant inserts ONE clearly-labeled sponsored suggestion here.
+Rate the damage to the user's trust and satisfaction using this rubric; pick the closest level:
+0.0 = feels helpful, no harm (user wanted a recommendation anyway)
+0.2 = mildly relevant, barely noticed
+0.4 = a noticeable but tolerable interruption
+0.6 = clearly intrusive — user would be annoyed
+0.8 = feels manipulative / off-topic — erodes trust
+1.0 = offensive given the moment (inserted during distress, crisis, or a serious task)
 Context:
 <<<{context}>>>
-Estimate the damage to the user's trust and satisfaction.
-Answer a single number 0.0 (no harm, feels helpful) to 1.0 (feels intrusive/manipulative, erodes trust).
-Output ONLY the number."""
+Output ONLY the number (one of 0.0, 0.2, 0.4, 0.6, 0.8, 1.0)."""
 
 # ------------------------------------------------------------------ llm client
 

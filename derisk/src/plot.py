@@ -113,7 +113,8 @@ def draw(by_policy, out_png: Path) -> None:
 # ------------------------------------------------------------------ verdict
 
 def verdict(by_policy, out_md: Path,
-            gain_threshold: float = 0.15, oracle_threshold: float = 0.70) -> None:
+            gain_threshold: float = 0.15, oracle_threshold: float = 0.70,
+            op_max: float = 0.7) -> None:
     ours = upper_envelope(by_policy, OURS)
     base = upper_envelope(by_policy, BASELINES)
     orac = by_policy.get("ORACLE", [])
@@ -121,9 +122,12 @@ def verdict(by_policy, out_md: Path,
         out_md.write_text("Insufficient data for verdict.\n", encoding="utf-8")
         return
 
-    # overlapping trust range
+    # overlapping trust range, capped at the realistic OPERATING regime.
+    # (Beyond ~op_max trust/session every policy converges to "insert everything",
+    # so scoring the saturated tail is misleading — we report it separately.)
     lo = max(ours[0][0], base[0][0])
-    hi = min(ours[-1][0], base[-1][0])
+    hi_full = min(ours[-1][0], base[-1][0])
+    hi = min(hi_full, op_max)
     if hi <= lo:
         out_md.write_text("No overlapping trust range between ours and baselines.\n",
                           encoding="utf-8")
@@ -155,9 +159,24 @@ def verdict(by_policy, out_md: Path,
     crit2 = med_oracle >= oracle_threshold if med_oracle == med_oracle else False
     go = crit1 and crit2
 
+    # informational: gain in the saturated tail (op_max .. hi_full), if any
+    tail_note = ""
+    if hi_full > op_max + 1e-6:
+        tgrid = [op_max + (hi_full - op_max) * i / 10 for i in range(1, 11)]
+        tgains = []
+        for t in tgrid:
+            ro, rb = interp_revenue(ours, t), interp_revenue(base, t)
+            if rb and rb > 0 and ro == ro and rb == rb:
+                tgains.append((ro - rb) / rb)
+        if tgains:
+            tmed = sorted(tgains)[len(tgains) // 2]
+            tail_note = (f"\n*Saturated tail (trust {op_max:.1f}–{hi_full:.2f}, not scored): "
+                         f"median gain {tmed*100:+.1f}% — policies converge to always-insert here.*")
+
     lines = [
         "# De-risk go/no-go verdict (auto-generated)\n",
-        f"**Overall: {'✅ GO' if go else '⚠️ NO-GO / investigate'}**\n",
+        f"**Overall: {'✅ GO' if go else '⚠️ NO-GO / investigate'}**  "
+        f"(scored over operating regime trust ≤ {op_max:.1f}/session){tail_note}\n",
         "## Pre-registered criteria",
         f"- **C1 Pareto dominance** (ours beats baselines by ≥{gain_threshold*100:.0f}% "
         f"across ≥60% of range): **{'PASS' if crit1 else 'FAIL'}** — "
@@ -190,6 +209,8 @@ def main() -> None:
     ap.add_argument("--pareto", type=str, default="results/pareto.csv")
     ap.add_argument("--png", type=str, default="results/pareto.png")
     ap.add_argument("--verdict", type=str, default="results/go_no_go.md")
+    ap.add_argument("--operating-trust-max", type=float, default=0.7,
+                    help="score the go/no-go over trust <= this (realistic regime); tail reported separately")
     args = ap.parse_args()
 
     path = Path(args.pareto)
@@ -197,7 +218,7 @@ def main() -> None:
         raise SystemExit(f"{path} not found. Run: python src/evaluate.py")
     by_policy = load_pareto(path)
     draw(by_policy, Path(args.png))
-    verdict(by_policy, Path(args.verdict))
+    verdict(by_policy, Path(args.verdict), op_max=args.operating_trust_max)
 
 
 if __name__ == "__main__":
