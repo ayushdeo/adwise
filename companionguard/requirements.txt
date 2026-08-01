@@ -1,0 +1,3 @@
+# CompanionGuard day-1 kill-test (Python 3.10+)
+openai>=1.0        # OpenAI-compatible client (Ollama / llama.cpp / vLLM / hosted)
+# stdlib only for metrics (AUC/kappa implemented in common.py) — no numpy/sklearn needed for the kill-test.

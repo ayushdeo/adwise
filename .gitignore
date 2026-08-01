@@ -17,6 +17,14 @@ derisk/results/*
 derisk/data/*
 !derisk/data/.gitkeep
 
+# CompanionGuard run artifacts (regenerable; may contain elicited transcripts)
+companionguard/cache/*
+!companionguard/cache/.gitkeep
+companionguard/results/*
+!companionguard/results/.gitkeep
+companionguard/data/*
+!companionguard/data/.gitkeep
+
 # OS / editor
 .DS_Store
 Thumbs.db
