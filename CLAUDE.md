@@ -13,17 +13,19 @@ and the hard rules.
 3. **Confirm before anything outward-facing** beyond ordinary `git push` to this
    repo (e.g., publishing, deleting remote data, posting).
 
-## What this project is
-Research toward **WWW 2027** (deadline **Oct 11, 2026**): reframing native-ad
-insertion in multi-turn AI assistants as a **metareasoning** problem — an agent
-spends a shared per-session **trust budget** across {think, act, answer, monetize}
-and learns *when* a sponsored suggestion is welcome vs. trust-corroding, with the
-"cost of an ad" **measured** via a (later) human study rather than assumed.
+## What this project is (current — pivoted)
+**CompanionGuard:** a benchmark + learned detector + mitigation for **manipulative retention
+"dark patterns"** in multi-turn AI-companion conversations (guilt/FOMO/"don't-leave-me" tactics
+that keep users engaged), grounded in CDT-37/HBS taxonomies, validated so detection is *conceptual,
+not lexical*. Phase-0 kill-test PASSED (judge AUC 0.987, +0.159 over keywords, human κ 0.906).
 
-Full context in:
-- `docs/research-plan-combined.md` — the thesis, confirmed whitespace, timeline.
-- `docs/derisk-harness-spec.md` — the 2-week de-risk design + pre-registered go/no-go.
-- `literature/literature-review.md` — annotated review + the gap matrix (papers to beat).
+**`docs/POA.md` is the canonical plan — read it first.** Other current docs: `methodology-reference.md`
+(how accepted papers do data+judge), `competitive-comparison.md` (baselines + metrics to beat),
+`companionguard/README.md` (how to run). Code lives in `companionguard/`.
+
+> Note: earlier docs about ad-timing / value-of-computation / uncertainty-control and the WWW-2027
+> ad thesis are **history** — those ideas were falsified/abandoned during de-risking. Ignore them
+> except as background on how we got here.
 
 ## Two-machine workflow
 - **This machine = RTX 4070 laptop (8 GB VRAM):** the *runner*. Do the labeling +
