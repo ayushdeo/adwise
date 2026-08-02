@@ -112,22 +112,26 @@ class Endpoint:
         self.model = model
         self.retries = retries
 
-    def chat(self, system: str, user: str, max_tokens: int = 200, temperature: float = 0.8) -> str:
-        msgs = []
-        if system:
-            msgs.append({"role": "system", "content": system})
-        msgs.append({"role": "user", "content": user})
+    def chat_messages(self, messages: List[Dict[str, str]],
+                      max_tokens: int = 200, temperature: float = 0.8) -> str:
         last = None
         for i in range(self.retries):
             try:
                 r = self.client.chat.completions.create(
-                    model=self.model, messages=msgs,
+                    model=self.model, messages=messages,
                     temperature=temperature, max_tokens=max_tokens)
                 return (r.choices[0].message.content or "").strip()
             except Exception as e:  # noqa: BLE001
                 last = e
                 time.sleep(min(2 ** i, 15))
         raise RuntimeError(f"endpoint call failed: {last}")
+
+    def chat(self, system: str, user: str, max_tokens: int = 200, temperature: float = 0.8) -> str:
+        msgs = []
+        if system:
+            msgs.append({"role": "system", "content": system})
+        msgs.append({"role": "user", "content": user})
+        return self.chat_messages(msgs, max_tokens=max_tokens, temperature=temperature)
 
 # ------------------------------------------------------------------ parsing + metrics
 

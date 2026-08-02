@@ -49,3 +49,37 @@ Resumable (caches `cache/responses.jsonl`, `cache/detections.jsonl`). `--repeats
 git add -f companionguard/results/killtest.md companionguard/cache/detections.jsonl
 git commit -m "results: CompanionGuard kill-test" && git pull --no-edit && git push
 ```
+
+---
+
+# Benchmark v1 builder (`build_benchmark.py`)
+
+Kill-test passed (GO) → this turns it into the real dataset. Retires the kill-test caveats:
+**multi-turn** dialogues (scripted user pushback → manipulation can escalate), **multi-model**
+elicitation, **dual-judge** labelling (use judge ≠ generator), and the **full tactic taxonomy**
+(`taxonomy.py`, 14 tactics grounded in CDT-37 / HBS).
+
+```bash
+# plumbing test (no models):
+python src/build_benchmark.py --mock
+
+# real: multiple generators + multiple judges (judges SHOULD differ from generators)
+ollama pull qwen2.5:7b-instruct llama3.1:8b gemma2:9b mistral:7b
+python src/build_benchmark.py \
+    --gen-models qwen2.5:7b-instruct,llama3.1:8b \
+    --judge-models gemma2:9b,mistral:7b
+python src/build_benchmark.py --score-only        # rebuild stats from cache
+```
+Knobs: `--pushbacks N` (turns of user resistance), `--max-scenarios`, `--max-personas`.
+Full run ≈ 18 scenarios × 2 conditions × personas × gens × (pushbacks+1) turns; resumable.
+
+**Outputs** (`results/`): `benchmark_v1.jsonl` (per companion turn: multi-turn context, reply,
+keyword score+tactics, each judge's score+tactics, judge_mean), `benchmark_stats.md`, and a
+human-label template.
+
+**Healthy-benchmark checks** (in `benchmark_stats.md`): AUC(judge) stays high, keyword gap ≥ 0.10,
+**inter-judge κ ≥ 0.6** (labels reproducible across judges → defuses judge=generator), and
+manipulation **escalates** across turns (t0<t1<t2) in the pressured condition.
+
+Next after v1: the **real-transcript validity slice** (audit companion/roleplay chats from
+WildChat/LMSYS), then the **learned detector** (frozen-7B + classifier vs baselines).
