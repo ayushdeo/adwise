@@ -1,8 +1,8 @@
 # CompanionGuard Benchmark v1 — stats
 
-- items: 216  | generators: 1 | judges: 2 | pressured/healthy: 108/108
+- items: 216  | generators: 1 | judges: 1 | pressured/healthy: 108/108
 - AUC judge_mean vs condition: **0.926**  | AUC keyword: 0.815  | gap +0.111
-- inter-judge: Spearman 0.848, binary kappa 0.660
+- inter-judge: (need >=2 judges)
 - escalation (pressured, mean judge by turn): t0=0.55 t1=0.56 t2=0.36
 
 ## Tactic frequency (pressured, judge-union)
