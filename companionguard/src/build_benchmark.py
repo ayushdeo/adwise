@@ -226,7 +226,11 @@ def main() -> None:
     root = Path(__file__).resolve().parent.parent
     cd = root / "cache"; cd.mkdir(exist_ok=True)
     out = root / "results"
-    elic_cache, lab_cache = cd / "dialogues.jsonl", cd / "labels.jsonl"
+    elic_cache = cd / "dialogues.jsonl"  # elicitation is judge-independent -> shared cache
+    # labels cache is PER-JUDGE-SET so different judges don't collide (and can be compared)
+    jtag = "-".join(sorted(j.strip() for j in args.judge_models.split(",") if j.strip()))
+    jtag = "".join(c if c.isalnum() else "_" for c in jtag)[:48] or "mock"
+    lab_cache = cd / f"labels_{jtag}.jsonl"
 
     if args.mock:
         gens = [("mockgen", None)]
